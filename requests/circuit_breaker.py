@@ -11,6 +11,7 @@ import socket
 class MonitorListener(pybreaker.CircuitBreakerListener):
 
     def __init__(self):
+        self.event_name = "circuit_breaker_event_espresso_{}".format(os.getenv('ENV'))
         self.ip = None
         self.app_name = None
         try:
@@ -30,7 +31,7 @@ class MonitorListener(pybreaker.CircuitBreakerListener):
 
     def send_updates(self, cb, success_count, fail_count):
         try:
-            newrelic.agent.record_custom_event("circuit_breaker_event_espresso", {
+            newrelic.agent.record_custom_event(self.event_name, {
 
                 "name": cb.name,
                 "service_name": self.app_name,
