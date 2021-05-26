@@ -5,7 +5,7 @@
 __title__ = 'requests'
 __description__ = 'Python HTTP for Humans.'
 __url__ = 'http://python-requests.org'
-__version__ = '2.18.4'
+__version__ = '2.18.4-cb'
 __build__ = 0x021804
 __author__ = 'Kenneth Reitz'
 __author_email__ = 'me@kennethreitz.org'
