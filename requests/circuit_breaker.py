@@ -1,7 +1,7 @@
 import pybreaker
 import os
 import json
-import warnings
+import logging
 from urllib3.util.url import get_host
 from .exceptions import ApiCircuitBreakerError, CustomHttpCircuitBreakerError
 import newrelic.agent
@@ -18,7 +18,7 @@ class MonitorListener(pybreaker.CircuitBreakerListener):
             self.ip = socket.gethostbyname(socket.gethostname())
             self.app_name = newrelic.core.config.global_settings().app_name
         except:
-            warnings.warn("error init MonitorListener event_name: {}".format(self.event_name))
+            logging.exception("error init MonitorListener event_name: {}".format(self.event_name))
             pass
 
     def failure(self, cb, exc):
@@ -32,7 +32,7 @@ class MonitorListener(pybreaker.CircuitBreakerListener):
 
     def send_updates(self, cb, success_count, fail_count):
         try:
-            warnings.warn("inside send_updates event_name: {}".format(self.event_name))
+            logging.info("inside send_updates event_name: {} {}".format(self.event_name, os.getenv('ENV')))
             newrelic.agent.record_custom_event(self.event_name, {
 
                 "name": cb.name,
@@ -45,7 +45,7 @@ class MonitorListener(pybreaker.CircuitBreakerListener):
                 "fallback_failure": 0,
             }, newrelic.agent.application())
         except:
-            warnings.warn("error send_updates for event_name: {}".format(self.event_name))
+            logging.exception("error send_updates for event_name: {}".format(self.event_name))
             pass
 
 
@@ -65,7 +65,7 @@ class CircuitBreakerConfig(object):
             for config in json_data:
                 try:
                     if config["domain_name"] in configs:
-                        warnings.warn(
+                        logging.exception(
                             "Config already present once overriding :" + config["domain_name"])
                     http_method_keyword_params = config.get("http_method_keyword_params") or []
                     http_method_keyword_params = list(filter(lambda x: (x.get('keyword') and x.get('method')),
@@ -75,9 +75,9 @@ class CircuitBreakerConfig(object):
                                                                           config["http_failed_status_code_list"],
                                                                           http_method_keyword_params)
                 except:
-                    warnings.warn("JSON File has wrong format circuit breaker functionality wont be used :" + config)
+                    logging.exception("JSON File has wrong format circuit breaker functionality wont be used :" + config)
         except:
-            warnings.warn("JSON File has wrong format circuit breaker functionality wont be used : JSON_PARSE_ERROR")
+            logging.exception("JSON File has wrong format circuit breaker functionality wont be used : JSON_PARSE_ERROR")
         return configs
 
 
@@ -93,13 +93,13 @@ class CircuitBreaker(object):
 
         json_file_path = os.environ.get("CB_JSON_FILE_PATH") or None
         if not json_file_path:
-            warnings.warn("JSON File path not found circuit breaker functionality wont be used : JSON_FILE_PATH")
+            logging.exception("JSON File path not found circuit breaker functionality wont be used : JSON_FILE_PATH")
         try:
             with open(json_file_path, ) as f:
                 data = json.load(f)
                 self.__circuit_breaker_config_per_domain = CircuitBreakerConfig.from_json(data)
         except:
-            warnings.warn("JSON File has wrong format circuit breaker functionality wont be used : JSON_FILE_PATH")
+            logging.exception("JSON File has wrong format circuit breaker functionality wont be used : JSON_FILE_PATH")
 
     def __register_circuit_breaker(self):
 
@@ -130,7 +130,7 @@ class CircuitBreaker(object):
     def __get_circuit_breaker_by_url(self, url, method):
         try:
             _, domain_name, port = get_host(url)
-            if port not in [80, 443]:
+            if port not in [80, 443, None]:
                 domain_name = "{}:{}".format(domain_name, port)
             cfg = self.__circuit_breaker_config_per_domain.get(domain_name)
 
@@ -144,7 +144,7 @@ class CircuitBreaker(object):
                         return cb, cfg.http_failed_status_code_list
 
         except Exception as e:
-            warnings.warn("error while getting url: {}".format(e.message))
+            logging.exception("error while getting url: {}".format(e.message))
             pass
 
         return None, None
@@ -153,7 +153,7 @@ class CircuitBreaker(object):
 
         cb, status_code_list = self.__get_circuit_breaker_by_url(url, method)
         if not cb:
-            warnings.warn("error execute_with_circuit_breaker cb not found: {}".format(url))
+            logging.exception("error execute_with_circuit_breaker cb not found: {}".format(url))
             return False, None
 
         try:
