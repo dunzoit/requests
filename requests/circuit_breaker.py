@@ -18,6 +18,7 @@ class MonitorListener(pybreaker.CircuitBreakerListener):
             self.ip = socket.gethostbyname(socket.gethostname())
             self.app_name = newrelic.core.config.global_settings().app_name
         except:
+            warnings.warn("error init MonitorListener event_name: {}".format(self.event_name))
             pass
 
     def failure(self, cb, exc):
@@ -31,6 +32,7 @@ class MonitorListener(pybreaker.CircuitBreakerListener):
 
     def send_updates(self, cb, success_count, fail_count):
         try:
+            warnings.warn("inside send_updates event_name: {}".format(self.event_name))
             newrelic.agent.record_custom_event(self.event_name, {
 
                 "name": cb.name,
@@ -43,6 +45,7 @@ class MonitorListener(pybreaker.CircuitBreakerListener):
                 "fallback_failure": 0,
             }, newrelic.agent.application())
         except:
+            warnings.warn("error send_updates for event_name: {}".format(self.event_name))
             pass
 
 
@@ -150,6 +153,7 @@ class CircuitBreaker(object):
 
         cb, status_code_list = self.__get_circuit_breaker_by_url(url, method)
         if not cb:
+            warnings.warn("error execute_with_circuit_breaker cb not found: {}".format(url))
             return False, None
 
         try:
