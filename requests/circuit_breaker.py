@@ -65,7 +65,7 @@ class CircuitBreakerConfig(object):
             for config in json_data:
                 try:
                     if config["domain_name"] in configs:
-                        logging.exception(
+                        logging.error(
                             "Config already present once overriding :" + config["domain_name"])
                     http_method_keyword_params = config.get("http_method_keyword_params") or []
                     http_method_keyword_params = list(filter(lambda x: (x.get('keyword') and x.get('method')),
@@ -95,11 +95,19 @@ class CircuitBreaker(object):
         if not json_file_path:
             logging.exception("JSON File path not found circuit breaker functionality wont be used : JSON_FILE_PATH")
         try:
-            with open(json_file_path, ) as f:
+            with open(json_file_path, "r") as f:
                 data = json.load(f)
                 self.__circuit_breaker_config_per_domain = CircuitBreakerConfig.from_json(data)
         except:
             logging.exception("JSON File has wrong format circuit breaker functionality wont be used : JSON_FILE_PATH")
+
+    def __update_cb_factory(self, key, config):
+        self.__circuit_breaker_factory_per_domain[key] = pybreaker.CircuitBreaker(
+            fail_max=config.fail_max_to_open,
+            reset_timeout=config.sleep_time_to_half_open,
+            state_storage=pybreaker.CircuitMemoryStorage(pybreaker.STATE_CLOSED), name=key,
+            listeners=[MonitorListener()]
+        )
 
     def __register_circuit_breaker(self):
 
@@ -107,20 +115,13 @@ class CircuitBreaker(object):
             for key, config in self.__circuit_breaker_config_per_domain.iteritems():
 
                 if not config.http_method_keyword_params:
-                    self.__circuit_breaker_factory_per_domain[key] = pybreaker.CircuitBreaker(
-                        fail_max=config.fail_max_to_open,
-                        reset_timeout=config.sleep_time_to_half_open,
-                        state_storage=pybreaker.CircuitMemoryStorage(pybreaker.STATE_CLOSED), name=key,
-                        listeners=[MonitorListener()])
+                    self.__update_cb_factory(key, config)
                 else:
                     for param in config.http_method_keyword_params:
-                        k = CircuitBreaker.__get_domain_key(key, param)
-                        self.__circuit_breaker_factory_per_domain[k] = pybreaker.CircuitBreaker(
-                            fail_max=config.fail_max_to_open,
-                            reset_timeout=config.sleep_time_to_half_open,
-                            state_storage=pybreaker.CircuitMemoryStorage(pybreaker.STATE_CLOSED), name=k,
-                            listeners=[MonitorListener()])
+                        k = self.__get_domain_key(key, param)
+                        self.__update_cb_factory(k, config)
         except:
+            logging.exception("error registering circuit breaker")
             pass
 
     @staticmethod
@@ -134,6 +135,8 @@ class CircuitBreaker(object):
                 domain_name = "{}:{}".format(domain_name, port)
             cfg = self.__circuit_breaker_config_per_domain.get(domain_name)
 
+            if cfg is None:
+                return None, None
             if not cfg.http_method_keyword_params:
                 return self.__circuit_breaker_factory_per_domain.get(domain_name), cfg.http_failed_status_code_list
 
