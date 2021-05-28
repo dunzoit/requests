@@ -84,11 +84,11 @@ class CircuitBreakerConfig(object):
 class CircuitBreaker(object):
 
     def __init__(self):
+        self.metric_collector = MonitorListener()
         self.__circuit_breaker_factory_per_domain = {}
         self.__circuit_breaker_config_per_domain = {}
         self.__load_from_json_file()
         self.__register_circuit_breaker()
-        self.metric_collector = MonitorListener()
 
     def __load_from_json_file(self):
 
