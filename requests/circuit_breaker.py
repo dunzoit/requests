@@ -15,8 +15,8 @@ class MonitorListener(pybreaker.CircuitBreakerListener):
         self.ip = None
         self.app_name = None
         try:
-            self.ip = socket.gethostbyname(socket.gethostname())
             self.app_name = newrelic.core.config.global_settings().app_name
+            self.ip = socket.gethostbyname(socket.gethostname())
         except:
             logging.exception("error init MonitorListener event_name: {}".format(self.event_name))
             pass
