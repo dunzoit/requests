@@ -88,6 +88,7 @@ class CircuitBreaker(object):
         self.__circuit_breaker_config_per_domain = {}
         self.__load_from_json_file()
         self.__register_circuit_breaker()
+        self.metric_collector = MonitorListener()
 
     def __load_from_json_file(self):
 
@@ -106,7 +107,7 @@ class CircuitBreaker(object):
             fail_max=config.fail_max_to_open,
             reset_timeout=config.sleep_time_to_half_open,
             state_storage=pybreaker.CircuitMemoryStorage(pybreaker.STATE_CLOSED), name=key,
-            listeners=[MonitorListener()]
+            listeners=[self.metric_collector]
         )
 
     def __register_circuit_breaker(self):
