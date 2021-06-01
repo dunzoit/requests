@@ -32,7 +32,6 @@ class MonitorListener(pybreaker.CircuitBreakerListener):
 
     def send_updates(self, cb, success_count, fail_count):
         try:
-            logging.info("inside send_updates event_name: {} {}".format(self.event_name, os.getenv('ENV')))
             newrelic.agent.record_custom_event(self.event_name, {
 
                 "name": cb.name,
@@ -157,7 +156,7 @@ class CircuitBreaker(object):
 
         cb, status_code_list = self.__get_circuit_breaker_by_url(url, method)
         if not cb:
-            logging.exception("error execute_with_circuit_breaker cb not found: {}".format(url))
+            # logging.exception("error execute_with_circuit_breaker cb not found: {}".format(url))
             return False, None
 
         try:
