@@ -11,6 +11,7 @@ This module implements the Requests API.
 """
 
 from . import sessions
+from .circuit_breaker import default_circuit_breaker
 
 
 def request(method, url, **kwargs):
@@ -54,6 +55,15 @@ def request(method, url, **kwargs):
     # By using the 'with' statement we are sure the session is closed, thus we
     # avoid leaving sockets open which can trigger a ResourceWarning in some
     # cases, and look like a memory leak in others.
+
+    executed, response = default_circuit_breaker.execute_with_circuit_breaker(basic_request, method, url, **kwargs)
+    if executed:
+        return response
+
+    return basic_request(method, url, **kwargs)
+
+
+def basic_request(method, url, **kwargs):
     with sessions.Session() as session:
         return session.request(method=method, url=url, **kwargs)
 

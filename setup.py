@@ -45,7 +45,9 @@ requires = [
     'chardet>=3.0.2,<3.1.0',
     'idna>=2.5,<2.7',
     'urllib3>=1.21.1,<1.23',
-    'certifi>=2017.4.17'
+    'certifi>=2017.4.17',
+    'pybreaker==0.6.0',
+    'newrelic==4.2.0.100'
 
 ]
 test_requirements = ['pytest-httpbin==0.0.7', 'pytest-cov', 'pytest-mock', 'pytest-xdist', 'PySocks>=1.5.6, !=1.5.7', 'pytest>=2.8.0']
